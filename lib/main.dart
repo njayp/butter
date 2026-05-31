@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'models/pokemon.dart';
 import 'services/pokemon_service.dart';
@@ -33,11 +34,43 @@ class PokemonPage extends StatefulWidget {
 
 class _PokemonPageState extends State<PokemonPage> {
   late final PokemonService _service = widget.service ?? PokemonService();
-  late Future<Pokemon> _future = _service.randomPokemon();
+  final _controller = TextEditingController();
+  late Future<Pokemon> _future = _show(_service.randomPokemon());
+
+  /// The id currently shown, so a redundant click-away doesn't refetch.
+  int? _currentId;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Shows [future], syncing [_currentId] and the input box once it resolves.
+  Future<Pokemon> _show(Future<Pokemon> future) {
+    future.then((pokemon) {
+      if (!mounted) return;
+      _currentId = pokemon.id;
+      _controller.text = pokemon.id.toString();
+    });
+    return future;
+  }
 
   void _loadAnother() {
     setState(() {
-      _future = _service.randomPokemon();
+      _future = _show(_service.randomPokemon());
+    });
+  }
+
+  /// Fetches the Pokédex number typed into the box, clamped to a valid id.
+  void _loadById(String raw) {
+    final parsed = int.tryParse(raw.trim());
+    if (parsed == null) return;
+    final id = parsed.clamp(1, PokemonService.maxId);
+    _controller.text = id.toString(); // reflect what was actually fetched
+    if (id == _currentId) return; // no redundant refetch on click-away
+    setState(() {
+      _future = _show(_service.getPokemon(id));
     });
   }
 
@@ -48,25 +81,49 @@ class _PokemonPageState extends State<PokemonPage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Random Pokémon'),
       ),
-      body: Center(
-        child: FutureBuilder<Pokemon>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-            if (snapshot.hasError) {
-              return Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  "Couldn't load a Pokémon.\nTap the button to try again.",
-                  textAlign: .center,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 240),
+              child: TextField(
+                controller: _controller,
+                keyboardType: TextInputType.number, // compact iOS number pad
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textAlign: TextAlign.center,
+                decoration: const InputDecoration(
+                  labelText: 'Pokédex number',
+                  border: OutlineInputBorder(),
                 ),
-              );
-            }
-            return _PokemonCard(pokemon: snapshot.requireData);
-          },
-        ),
+                onTapOutside: (_) => _loadById(_controller.text), // submit
+                onSubmitted: _loadById, // fallback where the keyboard has a key
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: FutureBuilder<Pokemon>(
+                future: _future,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  }
+                  if (snapshot.hasError) {
+                    return Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        "Couldn't load a Pokémon.\nTap the button to try again.",
+                        textAlign: .center,
+                      ),
+                    );
+                  }
+                  return _PokemonCard(pokemon: snapshot.requireData);
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _loadAnother,

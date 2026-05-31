@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/pokemon.dart';
 
-/// Fetches a random Pokémon from pokeapi.co.
+/// Fetches Pokémon from pokeapi.co.
 class PokemonService {
   /// The optional [client] is dependency injection: production code uses a real
   /// [http.Client], while tests can pass a `MockClient` so no real network call
@@ -15,10 +15,10 @@ class PokemonService {
   final http.Client _client;
 
   /// The total number of Pokémon (Pokédex ids `1–1025`).
-  static const int _maxId = 1025;
+  static const int maxId = 1025;
 
-  Future<Pokemon> randomPokemon() async {
-    final id = Random().nextInt(_maxId) + 1;
+  /// Fetches the Pokémon with the given Pokédex [id].
+  Future<Pokemon> getPokemon(int id) async {
     final res = await _client.get(
       Uri.parse('https://pokeapi.co/api/v2/pokemon/$id'),
     );
@@ -27,4 +27,6 @@ class PokemonService {
     }
     return Pokemon.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
+
+  Future<Pokemon> randomPokemon() => getPokemon(Random().nextInt(maxId) + 1);
 }
