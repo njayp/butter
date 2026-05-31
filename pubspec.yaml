@@ -35,6 +35,10 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # Official Dart team HTTP client for REST calls (pokeapi.co).
+  # https://docs.flutter.dev/cookbook/networking/fetch-data
+  http: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

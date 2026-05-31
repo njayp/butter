@@ -1,30 +1,38 @@
-// This is a basic Flutter widget test.
+// Widget test for PokemonPage. We inject a PokemonService backed by a
+// MockClient so the test runs offline and deterministically.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Note: Image.network fires a real GET during a widget test, which fails
+// offline — so we assert only on the text/Chip, never the image.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/testing.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:butter/main.dart';
+import 'package:butter/services/pokemon_service.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('PokemonPage shows the fetched Pokémon', (tester) async {
+    const body = '''
+{
+  "id": 25,
+  "name": "pikachu",
+  "types": [ { "slot": 1, "type": { "name": "electric" } } ],
+  "sprites": { "other": { "official-artwork": { "front_default": "https://example.com/25.png" } } }
+}
+''';
+    final service = PokemonService(
+      client: MockClient((_) async => http.Response(body, 200)),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpWidget(MaterialApp(home: PokemonPage(service: service)));
+    // Let the future resolve and the FutureBuilder rebuild.
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Pikachu'), findsOneWidget);
+    expect(find.text('#0025'), findsOneWidget);
+    expect(find.byType(Chip), findsOneWidget);
+    expect(find.text('electric'), findsOneWidget);
   });
 }
