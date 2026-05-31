@@ -22,7 +22,8 @@
 - Run `flutter test` for unit/widget tests; prefer widget tests that exercise observable behavior over rebuild-count assertions.
 - Prefer `const` constructors where possible.
 - Prefer composition (small `StatelessWidget`s) over deep widget trees in a single file.
-- Keep null-safety strict — no `!` unless the invariant is documented.
+- Keep null-safety strict — no `!`.
 
 ---
-*Update this file when conventions change; update README.md when scope changes.*
+
+_Update this file when conventions change; update README.md when scope changes._
