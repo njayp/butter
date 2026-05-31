@@ -24,6 +24,30 @@
 - Prefer composition (small `StatelessWidget`s) over deep widget trees in a single file.
 - Keep null-safety strict — no `!`.
 
+## Running the app (for Claude)
+
+F5 (VS Code's Dart extension) is for the human's hands-on sessions and stays
+untouched. When asked to verify a change, Claude drives its own `flutter run`
+loop via [scripts/dev.sh](scripts/dev.sh), which owns the process so its logs
+and hot-reload commands are readable from the terminal:
+
+| Command                  | Effect                                              |
+| ------------------------ | --------------------------------------------------- |
+| `bash scripts/dev.sh start`   | Boot the `iPhone 16` sim (if needed) + launch the app |
+| `bash scripts/dev.sh reload`  | Hot reload changed `.dart` files (`r`)              |
+| `bash scripts/dev.sh restart` | Hot restart the app (`R`)                           |
+| `bash scripts/dev.sh shot`    | Screenshot the sim → `/tmp/butter-shot.png`         |
+| `bash scripts/dev.sh logs [N]`| Print last N (default 50) lines of `/tmp/butter-run.log` |
+| `bash scripts/dev.sh stop`    | Quit the app, reap the feeder, remove the FIFO (sim stays booted) |
+
+**Verify loop:** edit `.dart` → `reload` → `logs` (check for exceptions /
+expected `print` output) → `shot` (inspect rendered UI) → `dart format .` /
+`flutter analyze` / `flutter test`.
+
+**Caveat:** F5 and this loop both target the same booted `iPhone 16`. Don't run
+both at once (two app instances is confusing) — stop the F5 session first, or
+run this loop while F5 is idle.
+
 ---
 
 _Update this file when conventions change; update README.md when scope changes._
