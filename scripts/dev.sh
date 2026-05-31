@@ -28,8 +28,12 @@ start() {
   mkfifo "$CMD_FIFO"
 
   # `tail -f` on the FIFO holds flutter run's stdin open forever (no EOF),
-  # so we can feed it r/R/q on demand.
-  tail -f "$CMD_FIFO" | flutter run -d "$DEVICE" >> "$RUN_LOG" 2>&1 &
+  # so we can feed it r/R/q on demand. Detach the whole pipeline's stdio
+  # (</dev/null, log for out+err) so the persistent `tail -f` feeder can't
+  # inherit — and thus hold open — a caller's stdout/stderr pipe. Without
+  # this, `dev.sh start 2>&1 | tail` blocks forever waiting on an EOF the
+  # never-exiting feeder withholds.
+  { tail -f "$CMD_FIFO" | flutter run -d "$DEVICE"; } </dev/null >> "$RUN_LOG" 2>&1 &
   echo "started flutter run on '$DEVICE' (logs: $RUN_LOG)"
 }
 
