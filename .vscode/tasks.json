@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Boot iOS Simulator",
+      "detail": "Boot the iPhone 16 simulator and show the Simulator window",
+      "type": "shell",
+      "command": "xcrun simctl bootstatus 'iPhone 16' -b && open -a Simulator",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "shared" }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  // default is "manual" (autosave does NOT reload) -> "all" = save always hot-reloads
+  "dart.flutterHotReloadOnSave": "all",
+  // default is "never" -> "flutter" auto-opens the embedded Widget Inspector on debug start
+  "dart.openDevTools": "flutter",
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.rulers": [80],
+    "editor.selectionHighlight": false,
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "butter (iPhone 16 simulator)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "deviceId": "iPhone 16",
+      "preLaunchTask": "Boot iOS Simulator"
+    },
+    {
+      "name": "butter (pick device)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug"
+    }
+  ]
+}
