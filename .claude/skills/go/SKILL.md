@@ -52,6 +52,22 @@ Launch three review agents **in parallel** (single message, three Agent tool cal
 
 Each agent should report concrete findings with file paths and line numbers, not vague suggestions. Brief each agent like a smart colleague who just walked in: include the full diff, the goal (catch issues before the prod tag goes out), and ask for a punch list.
 
-## 4. Commit changes
+## 4. Verify
+
+After applying the simplify fixes, verify the change before committing.
+
+**Always run** (per CLAUDE.md — a change isn't done until these pass):
+
+- `dart format .`
+- `flutter analyze`
+- `flutter test`
+
+**Then run the plan's own verification steps** (if it has any) — execute the change-specific checks the plan author wrote, so they aren't skipped.
+
+**When the change is visual or interactive**, also run the `scripts/dev.sh` loop (see CLAUDE.md's "Running the app" table and "Verify loop") to confirm it renders and behaves correctly: ensure a session is live (`start` if none is), then `reload` → `logs` → `shot`, driving input with `tap`/`type`/`key` when the change needs exercising.
+
+Fix anything these surface before continuing. For a pure refactor with no behavior change, the **Always run** checks above are sufficient.
+
+## 5. Commit changes
 
 Draft a 1-2 sentence commit, with an industry standard commit message that focuses on the "why" rather than the "what".
