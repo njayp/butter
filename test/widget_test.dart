@@ -61,6 +61,29 @@ void main() {
     expect(find.text('#0025'), findsOneWidget);
   });
 
+  testWidgets('tapping the go button fetches that specific Pokémon', (
+    tester,
+  ) async {
+    const names = {1: 'bulbasaur', 25: 'pikachu'};
+    final service = PokemonService(
+      client: MockClient((req) async {
+        final id = int.parse(req.url.pathSegments.last);
+        return http.Response(_body(id, names[id] ?? 'pokemon$id'), 200);
+      }),
+    );
+
+    await tester.pumpWidget(MaterialApp(home: PokemonPage(service: service)));
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), '25');
+    await tester.tap(find.byTooltip('Go'));
+    await tester.pump(); // process setState + start fetch
+    await tester.pump(); // future resolved → FutureBuilder shows data
+
+    expect(find.text('Pikachu'), findsOneWidget);
+    expect(find.text('#0025'), findsOneWidget);
+  });
+
   testWidgets('an out-of-range number clamps to the max id', (tester) async {
     final requested = <int>[];
     final service = PokemonService(

@@ -92,9 +92,14 @@ class _PokemonPageState extends State<PokemonPage> {
                 keyboardType: TextInputType.number, // compact iOS number pad
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 textAlign: TextAlign.center,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Pokédex number',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.arrow_forward),
+                    tooltip: 'Go',
+                    onPressed: () => _loadById(_controller.text),
+                  ),
                 ),
                 onTapOutside: (_) => _loadById(_controller.text), // submit
                 onSubmitted: _loadById, // fallback where the keyboard has a key
