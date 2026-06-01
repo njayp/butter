@@ -1,5 +1,9 @@
 # Makefile — human-facing app tasks.
-# (Claude's simulator run loop lives in scripts/dev.sh.)
+
+.PHONY: sim
+sim:
+	./scripts/dev.sh stop
+	./scripts/dev.sh start
 
 # Physical iPhone UDID, from `flutter devices`. Override per device:
 #   make iphone IPHONE=<other-udid>
