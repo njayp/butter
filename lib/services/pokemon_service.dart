@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/move.dart';
@@ -22,9 +23,14 @@ class PokemonService {
   /// sockets at once. PokeAPI has no hard rate limit; this is for politeness.
   static const int _maxConcurrentMoveFetches = 8;
 
-  /// Caches move-url → type so revisits and moves shared across Pokémon (the
-  /// same /move/{id} url) aren't refetched. Lives as long as the service.
-  final Map<String, String> _moveTypeCache = {};
+  static const String _boxName = 'moveTypes';
+
+  /// Caches move-url → type, persisted across launches. Caching the Future
+  /// dedupes the box-open across the concurrent getMoves workers.
+  Future<Box<String>>? _boxFuture;
+
+  Future<Box<String>> _moveBox() =>
+      _boxFuture ??= Hive.openBox<String>(_boxName);
 
   /// Fetches the Pokémon with the given Pokédex [id].
   Future<Pokemon> getPokemon(int id) async {
@@ -79,9 +85,10 @@ class PokemonService {
     return result;
   }
 
-  /// Fetches a move's type, using [_moveTypeCache] to avoid repeat requests.
+  /// Fetches a move's type, using the persisted [_moveBox] to avoid refetches.
   Future<String> _typeFor(String url) async {
-    final cached = _moveTypeCache[url];
+    final box = await _moveBox();
+    final cached = box.get(url);
     if (cached != null) return cached;
     final res = await _client.get(Uri.parse(url));
     if (res.statusCode != 200) {
@@ -90,7 +97,7 @@ class PokemonService {
     final type =
         (jsonDecode(res.body) as Map<String, dynamic>)['type']['name']
             as String;
-    _moveTypeCache[url] = type;
+    await box.put(url, type);
     return type;
   }
 }

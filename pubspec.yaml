@@ -43,6 +43,12 @@ dependencies:
   # ColorFilter to share the palette in lib/type_palette.dart.
   flutter_svg: ^2.3.0
 
+  # Embedded on-device key-value database. Persists the immutable move-url → type
+  # cache with per-key writes, so the moves screen needs no network on later
+  # launches. https://docs.hivedb.dev/
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0 # Hive.initFlutter(): picks the app documents dir
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

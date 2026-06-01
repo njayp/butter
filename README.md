@@ -19,6 +19,7 @@ A small Flutter learning app that shows a random Pokémon from
 | [lib/models/pokemon.dart](lib/models/pokemon.dart) | Immutable `Pokemon` model with `fromJson`, `displayName`, and `number` helpers — UI-free and unit-tested. |
 | [lib/services/pokemon_service.dart](lib/services/pokemon_service.dart) | `PokemonService` wrapping the pokeapi HTTP calls (`getPokemon`, `randomPokemon`); takes an injectable `http.Client` for offline tests. |
 | [test/pokemon_test.dart](test/pokemon_test.dart) | Unit tests for the model's JSON parsing and display helpers. |
+| [test/pokemon_service_test.dart](test/pokemon_service_test.dart) | Service test proving move types persist per-key across instances (Hive disk cache, no refetch). |
 | [test/widget_test.dart](test/widget_test.dart) | Widget tests for `PokemonPage`, backed by a `MockClient` so they run offline. |
 
 ## Getting started
@@ -50,3 +51,7 @@ the table in [CLAUDE.md](CLAUDE.md) rather than duplicating it here.
 - `PokemonService` takes a dependency-injected `http.Client`, so widget tests
   swap in a [`MockClient`](https://docs.flutter.dev/cookbook/testing/unit/mocking)
   and run entirely offline.
+- Move types are immutable reference data, so they're cached locally in a
+  [Hive](https://docs.hivedb.dev/) box (move-url → type) with per-key writes —
+  the moves screen needs no network after a move's been seen once, even across
+  launches.

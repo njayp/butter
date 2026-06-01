@@ -12,6 +12,8 @@ import 'package:http/http.dart' as http;
 import 'package:butter/main.dart';
 import 'package:butter/services/pokemon_service.dart';
 
+import 'hive_test_setup.dart';
+
 /// Builds a minimal pokeapi-shaped JSON body for [id]/[name].
 String _body(int id, String name) =>
     '''
@@ -33,6 +35,8 @@ String _body(int id, String name) =>
 const _moveBody = '{ "type": { "name": "normal" } }';
 
 void main() {
+  useTempHive(); // the moves test touches the persistent box; keep it offline
+
   testWidgets('PokemonPage shows the fetched Pokémon', (tester) async {
     final service = PokemonService(
       client: MockClient((_) async => http.Response(_body(25, 'pikachu'), 200)),
@@ -189,8 +193,16 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: PokemonPage(service: service)));
     await tester.pump(); // initial fetch resolves → card with Moves button
 
-    await tester.tap(find.text('Moves'));
-    await tester.pumpAndSettle(); // route push + getMoves resolves
+    // getMoves opens a real Hive box (dart:io), which only advances on the real
+    // clock — drive the whole Moves flow inside runAsync so the box open and
+    // move fetches actually resolve, then settle the frame that draws the table.
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Moves'));
+      await tester.pump(); // push the route so MovesScreen starts getMoves
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await tester.pump(); // rebuild the FutureBuilder with the resolved moves
+    });
+    await tester.pumpAndSettle(); // finish the route transition → the table
 
     // The table headers render.
     expect(find.text('Move'), findsOneWidget);
