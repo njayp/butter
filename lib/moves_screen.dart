@@ -27,7 +27,10 @@ class _MovesScreenState extends State<MovesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.pokemon.displayName}’s moves')),
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text('${widget.pokemon.displayName}’s moves'),
+      ),
       body: FutureBuilder<List<Move>>(
         future: _moves,
         builder: (context, snapshot) {
@@ -46,34 +49,48 @@ class _MovesScreenState extends State<MovesScreen> {
             );
           }
           final moves = snapshot.requireData;
-          // Tight spacing so all four columns fit a phone width without a
-          // sideways scroll; the rows still scroll vertically.
+          // Built once here rather than inside the LayoutBuilder so layout
+          // passes don't rebuild the whole row list.
+          final rows = [
+            for (final m in moves)
+              DataRow(
+                // Faint type tint keeps the default text legible across many
+                // stacked rows while still cueing the move's type.
+                color: WidgetStateProperty.all(
+                  typeColor(m.type).withValues(alpha: 0.14),
+                ),
+                cells: [
+                  DataCell(Text(m.name.replaceAll('-', ' '))),
+                  DataCell(_TypeLabel(type: m.type)),
+                  DataCell(Text(m.level?.toString() ?? '—')),
+                  DataCell(Text(m.method.replaceAll('-', ' '))),
+                ],
+              ),
+          ];
+          // The table fills the available width so the per-row type tint reaches
+          // the right edge; it scrolls vertically, and only sideways if the
+          // columns can't fit.
           return SingleChildScrollView(
-            child: DataTable(
-              columnSpacing: 16,
-              horizontalMargin: 16,
-              columns: const [
-                DataColumn(label: Text('Move')),
-                DataColumn(label: Text('Type')),
-                DataColumn(label: Text('Level'), numeric: true),
-                DataColumn(label: Text('Method')),
-              ],
-              rows: [
-                for (final m in moves)
-                  DataRow(
-                    // Faint type tint keeps the default text legible across
-                    // many stacked rows while still cueing the move's type.
-                    color: WidgetStateProperty.all(
-                      typeColor(m.type).withValues(alpha: 0.14),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                    child: DataTable(
+                      columnSpacing: 16,
+                      horizontalMargin: 16,
+                      columns: const [
+                        DataColumn(label: Text('Move')),
+                        DataColumn(label: Text('Type')),
+                        DataColumn(label: Text('Level'), numeric: true),
+                        DataColumn(label: Text('Method')),
+                      ],
+                      rows: rows,
                     ),
-                    cells: [
-                      DataCell(Text(m.name.replaceAll('-', ' '))),
-                      DataCell(_TypeLabel(type: m.type)),
-                      DataCell(Text(m.level?.toString() ?? '—')),
-                      DataCell(Text(m.method.replaceAll('-', ' '))),
-                    ],
                   ),
-              ],
+                );
+              },
             ),
           );
         },
