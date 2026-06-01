@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import 'models/pokemon.dart';
@@ -36,12 +37,14 @@ class _PokemonPageState extends State<PokemonPage> {
   final _controller = TextEditingController();
   late Future<Pokemon> _future = _show(_service.randomPokemon());
 
-  /// The id currently shown, so a redundant click-away doesn't refetch.
-  int? _currentId;
+  /// The id currently shown, so a redundant click-away doesn't refetch. A
+  /// notifier so the "Go" button can light up only when the typed id differs.
+  final _currentId = ValueNotifier<int?>(null);
 
   @override
   void dispose() {
     _controller.dispose();
+    _currentId.dispose();
     super.dispose();
   }
 
@@ -49,7 +52,7 @@ class _PokemonPageState extends State<PokemonPage> {
   Future<Pokemon> _show(Future<Pokemon> future) {
     future.then((pokemon) {
       if (!mounted) return;
-      _currentId = pokemon.id;
+      _currentId.value = pokemon.id;
       _controller.text = pokemon.id.toString();
     });
     return future;
@@ -67,7 +70,7 @@ class _PokemonPageState extends State<PokemonPage> {
     if (parsed == null) return;
     final id = parsed.clamp(1, PokemonService.maxId);
     _controller.text = id.toString(); // reflect what was actually fetched
-    if (id == _currentId) return; // no redundant refetch on click-away
+    if (id == _currentId.value) return; // no redundant refetch on click-away
     setState(() {
       _future = _show(_service.getPokemon(id));
     });
@@ -82,7 +85,11 @@ class _PokemonPageState extends State<PokemonPage> {
       ),
       body: Column(
         children: [
-          _PokedexSearchField(controller: _controller, onSubmit: _loadById),
+          _PokedexSearchField(
+            controller: _controller,
+            currentId: _currentId,
+            onSubmit: _loadById,
+          ),
           Expanded(child: _PokemonResult(future: _future)),
         ],
       ),
@@ -100,9 +107,17 @@ class _PokemonPageState extends State<PokemonPage> {
 /// [controller] and [onSubmit] are owned by the page so a resolved fetch can
 /// write the id back into the box.
 class _PokedexSearchField extends StatelessWidget {
-  const _PokedexSearchField({required this.controller, required this.onSubmit});
+  const _PokedexSearchField({
+    required this.controller,
+    required this.currentId,
+    required this.onSubmit,
+  });
 
   final TextEditingController controller;
+
+  /// The id currently shown; the "Go" button lights up only when the typed
+  /// number differs from this.
+  final ValueListenable<int?> currentId;
   final ValueChanged<String> onSubmit;
 
   /// Matches any non-digit, for stripping pasted/typed junk in [onChanged].
@@ -134,10 +149,17 @@ class _PokedexSearchField extends StatelessWidget {
         onSubmitted: onSubmit, // enter / keyboard "done"
         onTapOutside: (_) => submit(), // submit on tap-away
         trailing: [
-          IconButton.filled(
-            icon: const Icon(Icons.arrow_forward),
-            tooltip: 'Go', // tests rely on this tooltip
-            onPressed: submit,
+          ListenableBuilder(
+            listenable: Listenable.merge([controller, currentId]),
+            builder: (context, _) {
+              final typed = int.tryParse(controller.text.trim());
+              final isDifferent = typed != null && typed != currentId.value;
+              return IconButton.filled(
+                icon: const Icon(Icons.arrow_forward),
+                tooltip: 'Go', // tests rely on this tooltip
+                onPressed: isDifferent ? submit : null,
+              );
+            },
           ),
         ],
       ),

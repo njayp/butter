@@ -84,6 +84,40 @@ void main() {
     expect(find.text('#0025'), findsOneWidget);
   });
 
+  testWidgets('Go button is lit only when the typed number differs', (
+    tester,
+  ) async {
+    final service = PokemonService(
+      client: MockClient((req) async {
+        final id = int.parse(req.url.pathSegments.last);
+        return http.Response(_body(id, 'pokemon$id'), 200);
+      }),
+    );
+    await tester.pumpWidget(MaterialApp(home: PokemonPage(service: service)));
+    await tester.pump(); // initial random fetch resolves; box shows current id
+
+    IconButton go() => tester.widget<IconButton>(find.byType(IconButton));
+    final current = tester
+        .widget<TextField>(find.byType(TextField))
+        .controller!
+        .text;
+
+    // At rest the box matches the current id → disabled.
+    expect(go().onPressed, isNull);
+
+    // A different number → enabled ("lit up").
+    final other = current == '1' ? '2' : '1';
+    await tester.enterText(find.byType(TextField), other);
+    await tester.pump();
+    expect(go().onPressed, isNotNull);
+
+    // After the go resolves, box == current id again → re-greyed.
+    await tester.tap(find.byTooltip('Go'));
+    await tester.pump(); // setState + fetch start
+    await tester.pump(); // future resolved
+    expect(go().onPressed, isNull);
+  });
+
   testWidgets('an out-of-range number clamps to the max id', (tester) async {
     final requested = <int>[];
     final service = PokemonService(
