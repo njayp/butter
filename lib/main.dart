@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'models/pokemon.dart';
 import 'services/pokemon_service.dart';
@@ -96,38 +95,51 @@ class _PokemonPageState extends State<PokemonPage> {
   }
 }
 
-/// Numeric Pokédex-number input with a "Go" button; submits on tap, enter,
-/// or tap-away. Holds no state — [controller] and [onSubmit] are owned by the
-/// page so a resolved fetch can write the id back into the box.
+/// Material 3 search bar for the Pokédex number, with a trailing filled round
+/// "Go" button; submits on tap, enter, or tap-away. Holds no state —
+/// [controller] and [onSubmit] are owned by the page so a resolved fetch can
+/// write the id back into the box.
 class _PokedexSearchField extends StatelessWidget {
   const _PokedexSearchField({required this.controller, required this.onSubmit});
 
   final TextEditingController controller;
   final ValueChanged<String> onSubmit;
 
+  /// Matches any non-digit, for stripping pasted/typed junk in [onChanged].
+  static final RegExp _nonDigits = RegExp(r'[^0-9]');
+
   @override
   Widget build(BuildContext context) {
+    void submit() => onSubmit(controller.text);
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 240),
-        child: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number, // compact iOS number pad
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          textAlign: TextAlign.center,
-          decoration: InputDecoration(
-            labelText: 'Pokédex number',
-            border: const OutlineInputBorder(),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.arrow_forward),
-              tooltip: 'Go',
-              onPressed: () => onSubmit(controller.text),
-            ),
+      child: SearchBar(
+        controller: controller,
+        hintText: 'Pokédex number',
+        keyboardType: TextInputType.number, // compact iOS number pad
+        // Relax SearchBar's default minWidth: 360 so it fits the padded slot
+        // on narrow devices instead of overflowing.
+        constraints: const BoxConstraints(minHeight: 56),
+        leading: const Icon(Icons.search),
+        onChanged: (raw) {
+          // SearchBar has no inputFormatters, so strip non-digits here.
+          final digits = raw.replaceAll(_nonDigits, '');
+          if (digits != raw) {
+            controller.value = TextEditingValue(
+              text: digits,
+              selection: TextSelection.collapsed(offset: digits.length),
+            );
+          }
+        },
+        onSubmitted: onSubmit, // enter / keyboard "done"
+        onTapOutside: (_) => submit(), // submit on tap-away
+        trailing: [
+          IconButton.filled(
+            icon: const Icon(Icons.arrow_forward),
+            tooltip: 'Go', // tests rely on this tooltip
+            onPressed: submit,
           ),
-          onTapOutside: (_) => onSubmit(controller.text), // submit
-          onSubmitted: onSubmit, // fallback where the keyboard has a key
-        ),
+        ],
       ),
     );
   }
