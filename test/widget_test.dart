@@ -76,6 +76,7 @@ void main() {
     await tester.pump();
 
     await tester.enterText(find.byType(TextField), '25');
+    await tester.pump(); // the typed number lights the Go button
     await tester.tap(find.byTooltip('Go'));
     await tester.pump(); // process setState + start fetch
     await tester.pump(); // future resolved → FutureBuilder shows data

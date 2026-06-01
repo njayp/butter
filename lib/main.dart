@@ -37,8 +37,8 @@ class _PokemonPageState extends State<PokemonPage> {
   final _controller = TextEditingController();
   late Future<Pokemon> _future = _show(_service.randomPokemon());
 
-  /// The id currently shown, so a redundant click-away doesn't refetch. A
-  /// notifier so the "Go" button can light up only when the typed id differs.
+  /// The id currently shown, so re-submitting the same number doesn't refetch.
+  /// A notifier so the "Go" button can light up only when the typed id differs.
   final _currentId = ValueNotifier<int?>(null);
 
   @override
@@ -69,7 +69,8 @@ class _PokemonPageState extends State<PokemonPage> {
     if (parsed == null) return;
     final id = parsed.clamp(1, PokemonService.maxId);
     _controller.clear(); // box returns to its hint; the card shows the result
-    if (id == _currentId.value) return; // no redundant refetch on click-away
+    // no redundant refetch when re-submitting the shown id
+    if (id == _currentId.value) return;
     setState(() {
       _future = _show(_service.getPokemon(id));
     });
@@ -102,7 +103,7 @@ class _PokemonPageState extends State<PokemonPage> {
 }
 
 /// Material 3 search bar for the Pokédex number, with a trailing filled round
-/// "Go" button; submits on tap, enter, or tap-away. Holds no state —
+/// "Go" button; submits on tap or enter. Holds no state —
 /// [controller] and [onSubmit] are owned by the page.
 class _PokedexSearchField extends StatelessWidget {
   const _PokedexSearchField({
@@ -123,7 +124,6 @@ class _PokedexSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void submit() => onSubmit(controller.text);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: SearchBar(
@@ -145,7 +145,6 @@ class _PokedexSearchField extends StatelessWidget {
           }
         },
         onSubmitted: onSubmit, // enter / keyboard "done"
-        onTapOutside: (_) => submit(), // submit on tap-away
         trailing: [
           ListenableBuilder(
             listenable: Listenable.merge([controller, currentId]),
@@ -155,7 +154,7 @@ class _PokedexSearchField extends StatelessWidget {
               return IconButton.filled(
                 icon: const Icon(Icons.arrow_forward),
                 tooltip: 'Go', // tests rely on this tooltip
-                onPressed: isDifferent ? submit : null,
+                onPressed: isDifferent ? () => onSubmit(controller.text) : null,
               );
             },
           ),
