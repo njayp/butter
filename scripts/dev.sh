@@ -49,6 +49,12 @@ start() {
     exit 1
   fi
 
+  # Flutter's install step hangs (stuck right after "Xcode build done") when an
+  # instance of the app is already running in the sim foreground — e.g. left
+  # over from an F5 session or a crashed run that our reap path above didn't
+  # catch. Terminating it first lets the fresh install land cleanly.
+  xcrun simctl terminate "$DEVICE" "$BUNDLE_ID" 2>/dev/null || true
+
   : >"$RUN_LOG"
   rm -f "$CMD_FIFO"
   mkfifo "$CMD_FIFO"
