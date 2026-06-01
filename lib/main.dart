@@ -83,57 +83,83 @@ class _PokemonPageState extends State<PokemonPage> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 240),
-              child: TextField(
-                controller: _controller,
-                keyboardType: TextInputType.number, // compact iOS number pad
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(
-                  labelText: 'Pokédex number',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.arrow_forward),
-                    tooltip: 'Go',
-                    onPressed: () => _loadById(_controller.text),
-                  ),
-                ),
-                onTapOutside: (_) => _loadById(_controller.text), // submit
-                onSubmitted: _loadById, // fallback where the keyboard has a key
-              ),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: FutureBuilder<Pokemon>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
-                  if (snapshot.hasError) {
-                    return Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        "Couldn't load a Pokémon.\nTap the button to try again.",
-                        textAlign: .center,
-                      ),
-                    );
-                  }
-                  return _PokemonCard(pokemon: snapshot.requireData);
-                },
-              ),
-            ),
-          ),
+          _PokedexSearchField(controller: _controller, onSubmit: _loadById),
+          Expanded(child: _PokemonResult(future: _future)),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _loadAnother,
         tooltip: 'Another',
         child: const Icon(Icons.refresh),
+      ),
+    );
+  }
+}
+
+/// Numeric Pokédex-number input with a "Go" button; submits on tap, enter,
+/// or tap-away. Holds no state — [controller] and [onSubmit] are owned by the
+/// page so a resolved fetch can write the id back into the box.
+class _PokedexSearchField extends StatelessWidget {
+  const _PokedexSearchField({required this.controller, required this.onSubmit});
+
+  final TextEditingController controller;
+  final ValueChanged<String> onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 240),
+        child: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number, // compact iOS number pad
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          textAlign: TextAlign.center,
+          decoration: InputDecoration(
+            labelText: 'Pokédex number',
+            border: const OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.arrow_forward),
+              tooltip: 'Go',
+              onPressed: () => onSubmit(controller.text),
+            ),
+          ),
+          onTapOutside: (_) => onSubmit(controller.text), // submit
+          onSubmitted: onSubmit, // fallback where the keyboard has a key
+        ),
+      ),
+    );
+  }
+}
+
+/// The result region: a spinner while loading, a retry message on error, or
+/// the resolved Pokémon's card.
+class _PokemonResult extends StatelessWidget {
+  const _PokemonResult({required this.future});
+
+  final Future<Pokemon> future;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: FutureBuilder<Pokemon>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          }
+          if (snapshot.hasError) {
+            return const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                "Couldn't load a Pokémon.\nTap the button to try again.",
+                textAlign: .center,
+              ),
+            );
+          }
+          return _PokemonCard(pokemon: snapshot.requireData);
+        },
       ),
     );
   }
