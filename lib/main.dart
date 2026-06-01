@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import 'models/pokemon.dart';
+import 'moves_screen.dart';
 import 'services/pokemon_service.dart';
 
 void main() {
@@ -90,7 +91,9 @@ class _PokemonPageState extends State<PokemonPage> {
             currentId: _currentId,
             onSubmit: _loadById,
           ),
-          Expanded(child: _PokemonResult(future: _future)),
+          Expanded(
+            child: _PokemonResult(future: _future, service: _service),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -167,9 +170,10 @@ class _PokedexSearchField extends StatelessWidget {
 /// The result region: a spinner while loading, a retry message on error, or
 /// the resolved Pokémon's card.
 class _PokemonResult extends StatelessWidget {
-  const _PokemonResult({required this.future});
+  const _PokemonResult({required this.future, required this.service});
 
   final Future<Pokemon> future;
+  final PokemonService service;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +193,7 @@ class _PokemonResult extends StatelessWidget {
               ),
             );
           }
-          return _PokemonCard(pokemon: snapshot.requireData);
+          return _PokemonCard(pokemon: snapshot.requireData, service: service);
         },
       ),
     );
@@ -198,9 +202,10 @@ class _PokemonResult extends StatelessWidget {
 
 /// Displays one Pokémon's artwork, name, number, and type chips.
 class _PokemonCard extends StatelessWidget {
-  const _PokemonCard({required this.pokemon});
+  const _PokemonCard({required this.pokemon, required this.service});
 
   final Pokemon pokemon;
+  final PokemonService service;
 
   @override
   Widget build(BuildContext context) {
@@ -227,6 +232,16 @@ class _PokemonCard extends StatelessWidget {
         Wrap(
           spacing: 8,
           children: [for (final type in pokemon.types) Chip(label: Text(type))],
+        ),
+        const SizedBox(height: 16),
+        FilledButton.tonalIcon(
+          icon: const Icon(Icons.list_alt),
+          label: const Text('Moves'),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => MovesScreen(pokemon: pokemon, service: service),
+            ),
+          ),
         ),
       ],
     );

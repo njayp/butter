@@ -19,9 +19,18 @@ String _body(int id, String name) =>
   "id": $id,
   "name": "$name",
   "types": [ { "slot": 1, "type": { "name": "electric" } } ],
-  "sprites": { "other": { "official-artwork": { "front_default": "https://example.com/$id.png" } } }
+  "sprites": { "other": { "official-artwork": { "front_default": "https://example.com/$id.png" } } },
+  "moves": [
+    {
+      "move": { "name": "thunder-shock", "url": "https://pokeapi.co/api/v2/move/84/" },
+      "version_group_details": [ { "level_learned_at": 1, "move_learn_method": { "name": "level-up" } } ]
+    }
+  ]
 }
 ''';
+
+/// A minimal /move/{id} body — only the `type.name` the resolver reads.
+const _moveBody = '{ "type": { "name": "normal" } }';
 
 void main() {
   testWidgets('PokemonPage shows the fetched Pokémon', (tester) async {
@@ -163,5 +172,32 @@ void main() {
     await tester.pump();
 
     expect(requested.length, initialCalls); // no extra fetch
+  });
+
+  testWidgets('tapping Moves opens the moves table', (tester) async {
+    // Branch on the URL: /pokemon/... → the Pokémon body; /move/... → a move.
+    final service = PokemonService(
+      client: MockClient((req) async {
+        if (req.url.path.contains('/move/')) {
+          return http.Response(_moveBody, 200);
+        }
+        final id = int.parse(req.url.pathSegments.last);
+        return http.Response(_body(id, 'pikachu'), 200);
+      }),
+    );
+
+    await tester.pumpWidget(MaterialApp(home: PokemonPage(service: service)));
+    await tester.pump(); // initial fetch resolves → card with Moves button
+
+    await tester.tap(find.text('Moves'));
+    await tester.pumpAndSettle(); // route push + getMoves resolves
+
+    // The table headers render.
+    expect(find.text('Move'), findsOneWidget);
+    expect(find.text('Type'), findsOneWidget);
+    expect(find.text('Level'), findsOneWidget);
+    expect(find.text('Method'), findsOneWidget);
+    // The known move, with hyphens turned into spaces.
+    expect(find.text('thunder shock'), findsOneWidget);
   });
 }

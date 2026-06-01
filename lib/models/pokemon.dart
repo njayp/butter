@@ -8,12 +8,14 @@ class Pokemon {
     required this.name,
     required this.imageUrl,
     required this.types,
+    required this.moves,
   });
 
   final int id;
   final String name;
   final String imageUrl;
   final List<String> types;
+  final List<LearnedMove> moves;
 
   /// Builds a [Pokemon] from the `GET /api/v2/pokemon/{id}` JSON shape.
   factory Pokemon.fromJson(Map<String, dynamic> json) {
@@ -22,11 +24,15 @@ class Pokemon {
     final types = (json['types'] as List)
         .map((t) => t['type']['name'] as String)
         .toList();
+    final moves = (json['moves'] as List)
+        .map((m) => LearnedMove.fromJson(m as Map<String, dynamic>))
+        .toList();
     return Pokemon(
       id: json['id'] as int,
       name: json['name'] as String,
       imageUrl: artwork,
       types: types,
+      moves: moves,
     );
   }
 
@@ -36,4 +42,38 @@ class Pokemon {
 
   /// Zero-padded Pokédex number, e.g. id `25` → `#0025`.
   String get number => '#${id.toString().padLeft(4, '0')}';
+}
+
+/// One entry from a Pokémon's `moves` array: the move plus how this Pokémon
+/// learns it. The move's type isn't here — it needs a /move/{id} fetch.
+class LearnedMove {
+  const LearnedMove({
+    required this.name,
+    required this.url,
+    required this.level,
+    required this.method,
+  });
+
+  final String name;
+  final String url;
+
+  /// Level-up level; null for TM/egg/tutor moves.
+  final int? level;
+
+  /// How the move is learned: 'level-up' | 'machine' | 'egg' | 'tutor' …
+  final String method;
+
+  factory LearnedMove.fromJson(Map<String, dynamic> json) {
+    final details = json['version_group_details'] as List;
+    // Use the most recent game (last entry) as the representative row.
+    final last = details.last as Map<String, dynamic>;
+    final method = last['move_learn_method']['name'] as String;
+    final lvl = last['level_learned_at'] as int;
+    return LearnedMove(
+      name: json['move']['name'] as String,
+      url: json['move']['url'] as String,
+      level: (method == 'level-up' && lvl > 0) ? lvl : null,
+      method: method,
+    );
+  }
 }
