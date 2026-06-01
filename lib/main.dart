@@ -214,22 +214,29 @@ class _PokemonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    const missingArtwork = SizedBox(
+      height: 200,
+      child: Icon(Icons.broken_image),
+    );
+    final imageUrl = pokemon.imageUrl;
     return Column(
       mainAxisAlignment: .center,
       children: [
-        Image.network(
-          pokemon.imageUrl,
-          height: 200,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return const SizedBox(
-              height: 200,
-              child: Center(child: CircularProgressIndicator()),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) =>
-              const SizedBox(height: 200, child: Icon(Icons.broken_image)),
-        ),
+        if (imageUrl == null)
+          missingArtwork
+        else
+          Image.network(
+            imageUrl,
+            height: 200,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const SizedBox(
+                height: 200,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) => missingArtwork,
+          ),
         Text(pokemon.displayName, style: textTheme.headlineMedium),
         Text(pokemon.number, style: textTheme.titleMedium),
         const SizedBox(height: 8),

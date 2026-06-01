@@ -18,4 +18,15 @@ class Move {
 
   /// How the move is learned: 'level-up' | 'machine' | 'egg' | 'tutor' …
   final String method;
+
+  @override
+  bool operator ==(Object other) =>
+      other is Move &&
+      other.name == name &&
+      other.type == type &&
+      other.level == level &&
+      other.method == method;
+
+  @override
+  int get hashCode => Object.hash(name, type, level, method);
 }

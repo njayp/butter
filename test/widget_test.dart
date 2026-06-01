@@ -14,14 +14,15 @@ import 'package:butter/services/pokemon_service.dart';
 
 import 'hive_test_setup.dart';
 
-/// Builds a minimal pokeapi-shaped JSON body for [id]/[name].
-String _body(int id, String name) =>
+/// Builds a minimal pokeapi-shaped JSON body for [id]/[name]. Pass
+/// [nullArtwork] to emit a bare `null` front_default (PokéAPI's missing-art case).
+String _body(int id, String name, {bool nullArtwork = false}) =>
     '''
 {
   "id": $id,
   "name": "$name",
   "types": [ { "slot": 1, "type": { "name": "electric" } } ],
-  "sprites": { "other": { "official-artwork": { "front_default": "https://example.com/$id.png" } } },
+  "sprites": { "other": { "official-artwork": { "front_default": ${nullArtwork ? 'null' : '"https://example.com/$id.png"'} } } },
   "moves": [
     {
       "move": { "name": "thunder-shock", "url": "https://pokeapi.co/api/v2/move/84/" },
@@ -176,6 +177,24 @@ void main() {
     await tester.pump();
 
     expect(requested.length, initialCalls); // no extra fetch
+  });
+
+  testWidgets('a Pokémon with null artwork shows the fallback icon', (
+    tester,
+  ) async {
+    final service = PokemonService(
+      client: MockClient(
+        (_) async =>
+            http.Response(_body(25, 'pikachu', nullArtwork: true), 200),
+      ),
+    );
+
+    await tester.pumpWidget(MaterialApp(home: PokemonPage(service: service)));
+    await tester.pump(); // future resolves → card renders
+
+    expect(find.byIcon(Icons.broken_image), findsOneWidget);
+    expect(find.byType(Image), findsNothing); // no network image attempted
+    expect(find.text('Pikachu'), findsOneWidget);
   });
 
   testWidgets('tapping Moves opens the moves table', (tester) async {

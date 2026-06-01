@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// An immutable view of a single Pokémon, parsed from the pokeapi.co response.
 ///
 /// Keeping the JSON parsing here (out of the UI) makes it easy to unit-test
@@ -13,14 +15,17 @@ class Pokemon {
 
   final int id;
   final String name;
-  final String imageUrl;
+
+  /// Official artwork URL; null when PokéAPI has no artwork for this entry.
+  final String? imageUrl;
   final List<String> types;
   final List<LearnedMove> moves;
 
   /// Builds a [Pokemon] from the `GET /api/v2/pokemon/{id}` JSON shape.
   factory Pokemon.fromJson(Map<String, dynamic> json) {
     final artwork =
-        json['sprites']['other']['official-artwork']['front_default'] as String;
+        json['sprites']['other']['official-artwork']['front_default']
+            as String?;
     final types = (json['types'] as List)
         .map((t) => t['type']['name'] as String)
         .toList();
@@ -42,6 +47,24 @@ class Pokemon {
 
   /// Zero-padded Pokédex number, e.g. id `25` → `#0025`.
   String get number => '#${id.toString().padLeft(4, '0')}';
+
+  @override
+  bool operator ==(Object other) =>
+      other is Pokemon &&
+      other.id == id &&
+      other.name == name &&
+      other.imageUrl == imageUrl &&
+      listEquals(other.types, types) &&
+      listEquals(other.moves, moves);
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    imageUrl,
+    Object.hashAll(types),
+    Object.hashAll(moves),
+  );
 }
 
 /// One entry from a Pokémon's `moves` array: the move plus how this Pokémon
@@ -76,4 +99,15 @@ class LearnedMove {
       method: method,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is LearnedMove &&
+      other.name == name &&
+      other.url == url &&
+      other.level == level &&
+      other.method == method;
+
+  @override
+  int get hashCode => Object.hash(name, url, level, method);
 }

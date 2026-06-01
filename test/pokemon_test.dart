@@ -76,4 +76,26 @@ void main() {
     expect(pokemon.displayName, 'Pikachu');
     expect(pokemon.number, '#0025');
   });
+
+  test('Pokemon.fromJson tolerates null official artwork', () {
+    final json = <String, dynamic>{
+      ...sampleJson,
+      'sprites': {
+        'other': {
+          'official-artwork': {'front_default': null},
+        },
+      },
+    };
+
+    final pokemon = Pokemon.fromJson(json); // must not throw
+    expect(pokemon.imageUrl, isNull);
+  });
+
+  test('parsing the same JSON twice yields equal Pokémon', () {
+    expect(Pokemon.fromJson(sampleJson), Pokemon.fromJson(sampleJson));
+    expect(
+      Pokemon.fromJson(sampleJson).hashCode,
+      Pokemon.fromJson(sampleJson).hashCode,
+    );
+  });
 }
