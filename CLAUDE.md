@@ -1,3 +1,8 @@
+## Project overview
+
+See [README.md](README.md) for what this app is and how it's structured — read
+it first for context before planning or making changes.
+
 ## Claude-Code Plan Guidelines
 
 **Context:** Explain why this change is needed — the problem, what prompted it, and the intended outcome.
