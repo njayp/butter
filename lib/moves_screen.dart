@@ -24,8 +24,47 @@ class _MovesScreenState extends State<MovesScreen> {
     widget.pokemon.moves,
   );
 
+  /// Active sort column, or null to keep the service's default order
+  /// (level-up first by level, then alphabetical).
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+
+  void _onSort(int index, bool ascending) => setState(() {
+    _sortColumnIndex = index;
+    _sortAscending = ascending;
+  });
+
+  /// Returns [moves] in the order the table should render: the service's
+  /// default when no header is active, otherwise a copy sorted by the chosen
+  /// column. Nulls (level-less moves) always sort last regardless of direction.
+  List<Move> _sorted(List<Move> moves) {
+    final index = _sortColumnIndex;
+    if (index == null) return moves;
+
+    // Cases match the column order: 0 Move · 1 Type · 2 Level · 3 Method.
+    int byName(Move a, Move b) => a.name.compareTo(b.name);
+    int compare(Move a, Move b) {
+      switch (index) {
+        case 1: // Type — group by type, tiebreak by name.
+          final byType = a.type.compareTo(b.type);
+          return byType != 0 ? byType : byName(a, b);
+        case 2: // Level — numeric, nulls last (shared with the default order).
+          return Move.compareLevelThenName(a, b);
+        case 3: // Method.
+          final byMethod = a.method.compareTo(b.method);
+          return byMethod != 0 ? byMethod : byName(a, b);
+        default: // Move.
+          return byName(a, b);
+      }
+    }
+
+    final sorted = [...moves]..sort(compare);
+    return _sortAscending ? sorted : sorted.reversed.toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -48,7 +87,7 @@ class _MovesScreenState extends State<MovesScreen> {
               ),
             );
           }
-          final moves = snapshot.requireData;
+          final moves = _sorted(snapshot.requireData);
           // Built once here rather than inside the LayoutBuilder so layout
           // passes don't rebuild the whole row list.
           final rows = [
@@ -61,7 +100,7 @@ class _MovesScreenState extends State<MovesScreen> {
                 ),
                 cells: [
                   DataCell(Text(m.name.replaceAll('-', ' '))),
-                  DataCell(_TypeLabel(type: m.type)),
+                  DataCell(TypeIcon(m.type)),
                   DataCell(Text(m.level?.toString() ?? '—')),
                   DataCell(Text(m.method.replaceAll('-', ' '))),
                 ],
@@ -80,11 +119,24 @@ class _MovesScreenState extends State<MovesScreen> {
                     child: DataTable(
                       columnSpacing: 16,
                       horizontalMargin: 16,
-                      columns: const [
-                        DataColumn(label: Text('Move')),
-                        DataColumn(label: Text('Type')),
-                        DataColumn(label: Text('Level'), numeric: true),
-                        DataColumn(label: Text('Method')),
+                      sortColumnIndex: _sortColumnIndex,
+                      sortAscending: _sortAscending,
+                      dataTextStyle: textTheme.bodyLarge,
+                      headingTextStyle: textTheme.titleSmall,
+                      dataRowMinHeight: 52,
+                      dataRowMaxHeight: 64,
+                      columns: [
+                        DataColumn(label: const Text('Move'), onSort: _onSort),
+                        DataColumn(label: const Text('Type'), onSort: _onSort),
+                        DataColumn(
+                          label: const Text('Level'),
+                          numeric: true,
+                          onSort: _onSort,
+                        ),
+                        DataColumn(
+                          label: const Text('Method'),
+                          onSort: _onSort,
+                        ),
                       ],
                       rows: rows,
                     ),
@@ -97,18 +149,4 @@ class _MovesScreenState extends State<MovesScreen> {
       ),
     );
   }
-}
-
-/// Compact type cell: the tinted official type symbol (or a Poké Ball fallback
-/// for an unknown type) followed by the lowercase type name.
-class _TypeLabel extends StatelessWidget {
-  const _TypeLabel({required this.type});
-
-  final String type;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [TypeIcon(type), const SizedBox(width: 6), Text(type)],
-  );
 }

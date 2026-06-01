@@ -19,6 +19,18 @@ class Move {
   /// How the move is learned: 'level-up' | 'machine' | 'egg' | 'tutor' …
   final String method;
 
+  /// Orders level-up moves first (by level), then the rest alphabetically;
+  /// null levels (TM/egg/tutor) always sort last. Shared by the service's
+  /// default ordering and the moves table's Level-column sort.
+  static int compareLevelThenName(Move a, Move b) {
+    final aLevel = a.level;
+    final bLevel = b.level;
+    if (aLevel != null && bLevel != null) return aLevel.compareTo(bLevel);
+    if (aLevel != null) return -1;
+    if (bLevel != null) return 1;
+    return a.name.compareTo(b.name);
+  }
+
   @override
   bool operator ==(Object other) =>
       other is Move &&

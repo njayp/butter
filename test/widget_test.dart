@@ -27,6 +27,10 @@ String _body(int id, String name, {bool nullArtwork = false}) =>
     {
       "move": { "name": "thunder-shock", "url": "https://pokeapi.co/api/v2/move/84/" },
       "version_group_details": [ { "level_learned_at": 1, "move_learn_method": { "name": "level-up" } } ]
+    },
+    {
+      "move": { "name": "mega-punch", "url": "https://pokeapi.co/api/v2/move/5/" },
+      "version_group_details": [ { "level_learned_at": 15, "move_learn_method": { "name": "level-up" } } ]
     }
   ]
 }
@@ -230,5 +234,14 @@ void main() {
     expect(find.text('Method'), findsOneWidget);
     // The known move, with hyphens turned into spaces.
     expect(find.text('thunder shock'), findsOneWidget);
+
+    // Default order is by level: thunder shock (1) above mega punch (15).
+    double rowY(String name) => tester.getTopLeft(find.text(name)).dy;
+    expect(rowY('thunder shock'), lessThan(rowY('mega punch')));
+
+    // Tapping the Move header sorts by name ascending, flipping the order.
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    expect(rowY('mega punch'), lessThan(rowY('thunder shock')));
   });
 }

@@ -72,16 +72,7 @@ class PokemonService {
     ]);
 
     final result = rows.cast<Move>();
-    // Level-up moves first (by level), then the rest alphabetically. Locals let
-    // the null-check promote the type, so the sort needs no `!`.
-    result.sort((a, b) {
-      final aLevel = a.level;
-      final bLevel = b.level;
-      if (aLevel != null && bLevel != null) return aLevel.compareTo(bLevel);
-      if (aLevel != null) return -1;
-      if (bLevel != null) return 1;
-      return a.name.compareTo(b.name);
-    });
+    result.sort(Move.compareLevelThenName);
     return result;
   }
 
