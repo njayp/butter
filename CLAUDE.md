@@ -42,12 +42,21 @@ and hot-reload commands are readable from the terminal:
 | `bash scripts/dev.sh reload`   | Hot reload changed `.dart` files (`r`)                            |
 | `bash scripts/dev.sh restart`  | Hot restart the app (`R`)                                         |
 | `bash scripts/dev.sh shot`     | Screenshot the sim → `/tmp/butter-shot.png`                       |
+| `bash scripts/dev.sh tap X Y`  | Tap at device-point coords (find them via `idb ui describe-all --udid <udid>`) |
+| `bash scripts/dev.sh type T`   | Replace the focused field's text with `T` — tap the field first   |
+| `bash scripts/dev.sh key NAME` | Press `return`/`enter`/`backspace` (or a raw HID code)            |
 | `bash scripts/dev.sh logs [N]` | Print last N (default 50) lines of `/tmp/butter-run.log`          |
 | `bash scripts/dev.sh stop`     | Terminate the app on the sim, reap `flutter run` + the feeder, remove the FIFO (sim stays booted) |
 
+The `tap`/`type`/`key` input commands need [fb-idb](https://fbidb.io)
+(`brew install facebook/fb/idb-companion && pipx install fb-idb`), since
+`simctl` can't drive touch or text. Example: drive the search field with
+`tap 184 159` → `type 700` → `key return`.
+
 **Verify loop:** edit `.dart` → `reload` → `logs` (check for exceptions /
 expected `print` output) → `shot` (inspect rendered UI) → `dart format .` /
-`flutter analyze` / `flutter test`.
+`flutter analyze` / `flutter test`. Drive input with `tap`/`type`/`key` when a
+change needs interaction to exercise.
 
 **Caveat:** F5 and this loop both target the same booted `iPhone 16`. To stop
 the two clashing, `start` refuses if another `flutter run` is already on the sim
