@@ -87,31 +87,30 @@ void main() {
   testWidgets('Go button is lit only when the typed number differs', (
     tester,
   ) async {
+    final requested = <int>[];
     final service = PokemonService(
       client: MockClient((req) async {
         final id = int.parse(req.url.pathSegments.last);
+        requested.add(id);
         return http.Response(_body(id, 'pokemon$id'), 200);
       }),
     );
     await tester.pumpWidget(MaterialApp(home: PokemonPage(service: service)));
-    await tester.pump(); // initial random fetch resolves; box shows current id
+    await tester.pump(); // initial random fetch resolves; box stays empty
 
     IconButton go() => tester.widget<IconButton>(find.byType(IconButton));
-    final current = tester
-        .widget<TextField>(find.byType(TextField))
-        .controller!
-        .text;
+    final currentId = requested.last;
 
-    // At rest the box matches the current id → disabled.
+    // At rest the box is empty (no typed number) → disabled.
     expect(go().onPressed, isNull);
 
     // A different number → enabled ("lit up").
-    final other = current == '1' ? '2' : '1';
-    await tester.enterText(find.byType(TextField), other);
+    final other = currentId == 1 ? 2 : 1;
+    await tester.enterText(find.byType(TextField), '$other');
     await tester.pump();
     expect(go().onPressed, isNotNull);
 
-    // After the go resolves, box == current id again → re-greyed.
+    // After the go resolves, the box clears → disabled again.
     await tester.tap(find.byTooltip('Go'));
     await tester.pump(); // setState + fetch start
     await tester.pump(); // future resolved
@@ -137,11 +136,11 @@ void main() {
     await tester.pump(); // future resolved → FutureBuilder shows data
 
     expect(requested.last, PokemonService.maxId); // 9999 → 1025
+    // The box clears; the card shows the clamped id that was actually fetched.
     expect(find.text('#1025'), findsOneWidget);
-    // The box reflects the clamped id that was actually fetched.
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      '1025',
+      '',
     );
   });
 

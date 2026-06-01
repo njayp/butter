@@ -48,12 +48,11 @@ class _PokemonPageState extends State<PokemonPage> {
     super.dispose();
   }
 
-  /// Shows [future], syncing [_currentId] and the input box once it resolves.
+  /// Shows [future], syncing [_currentId] once it resolves.
   Future<Pokemon> _show(Future<Pokemon> future) {
     future.then((pokemon) {
       if (!mounted) return;
       _currentId.value = pokemon.id;
-      _controller.text = pokemon.id.toString();
     });
     return future;
   }
@@ -69,7 +68,7 @@ class _PokemonPageState extends State<PokemonPage> {
     final parsed = int.tryParse(raw.trim());
     if (parsed == null) return;
     final id = parsed.clamp(1, PokemonService.maxId);
-    _controller.text = id.toString(); // reflect what was actually fetched
+    _controller.clear(); // box returns to its hint; the card shows the result
     if (id == _currentId.value) return; // no redundant refetch on click-away
     setState(() {
       _future = _show(_service.getPokemon(id));
@@ -104,8 +103,7 @@ class _PokemonPageState extends State<PokemonPage> {
 
 /// Material 3 search bar for the Pokédex number, with a trailing filled round
 /// "Go" button; submits on tap, enter, or tap-away. Holds no state —
-/// [controller] and [onSubmit] are owned by the page so a resolved fetch can
-/// write the id back into the box.
+/// [controller] and [onSubmit] are owned by the page.
 class _PokedexSearchField extends StatelessWidget {
   const _PokedexSearchField({
     required this.controller,
@@ -135,7 +133,7 @@ class _PokedexSearchField extends StatelessWidget {
         // Relax SearchBar's default minWidth: 360 so it fits the padded slot
         // on narrow devices instead of overflowing.
         constraints: const BoxConstraints(minHeight: 56),
-        leading: const Icon(Icons.search),
+        leading: const Icon(Icons.tag),
         onChanged: (raw) {
           // SearchBar has no inputFormatters, so strip non-digits here.
           final digits = raw.replaceAll(_nonDigits, '');
