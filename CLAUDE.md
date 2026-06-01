@@ -23,6 +23,7 @@ it first for context before planning or making changes.
 ## Flutter / Dart
 
 - This repo is for learning Flutter. Lean toward explanations that build understanding, not just shipped code. Link to official Flutter/Dart docs when introducing a new concept.
+- Prefer Material 3 widgets and styling
 - Run `dart format .` and `flutter analyze` before considering a change done.
 - Run `flutter test` for unit/widget tests; prefer widget tests that exercise observable behavior over rebuild-count assertions.
 - Prefer `const` constructors where possible.
@@ -36,16 +37,16 @@ untouched. When asked to verify a change, Claude drives its own `flutter run`
 loop via [scripts/dev.sh](scripts/dev.sh), which owns the process so its logs
 and hot-reload commands are readable from the terminal:
 
-| Command                        | Effect                                                            |
-| ------------------------------ | ----------------------------------------------------------------- |
-| `bash scripts/dev.sh start`    | Boot the `iPhone 16` sim (if needed) + launch the app, **blocking until it's ready** |
-| `bash scripts/dev.sh reload`   | Hot reload changed `.dart` files (`r`)                            |
-| `bash scripts/dev.sh restart`  | Hot restart the app (`R`)                                         |
-| `bash scripts/dev.sh shot`     | Screenshot the sim → `/tmp/butter-shot.png`                       |
-| `bash scripts/dev.sh tap X Y`  | Tap at device-point coords (find them via `idb ui describe-all --udid <udid>`) |
-| `bash scripts/dev.sh type T`   | Replace the focused field's text with `T` — tap the field first   |
-| `bash scripts/dev.sh key NAME` | Press `return`/`enter`/`backspace` (or a raw HID code)            |
-| `bash scripts/dev.sh logs [N]` | Print last N (default 50) lines of `/tmp/butter-run.log`          |
+| Command                        | Effect                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `bash scripts/dev.sh start`    | Boot the `iPhone 16` sim (if needed) + launch the app, **blocking until it's ready**              |
+| `bash scripts/dev.sh reload`   | Hot reload changed `.dart` files (`r`)                                                            |
+| `bash scripts/dev.sh restart`  | Hot restart the app (`R`)                                                                         |
+| `bash scripts/dev.sh shot`     | Screenshot the sim → `/tmp/butter-shot.png`                                                       |
+| `bash scripts/dev.sh tap X Y`  | Tap at device-point coords (find them via `idb ui describe-all --udid <udid>`)                    |
+| `bash scripts/dev.sh type T`   | Replace the focused field's text with `T` — tap the field first                                   |
+| `bash scripts/dev.sh key NAME` | Press `return`/`enter`/`backspace` (or a raw HID code)                                            |
+| `bash scripts/dev.sh logs [N]` | Print last N (default 50) lines of `/tmp/butter-run.log`                                          |
 | `bash scripts/dev.sh stop`     | Terminate the app on the sim, reap `flutter run` + the feeder, remove the FIFO (sim stays booted) |
 
 The `tap`/`type`/`key` input commands need [fb-idb](https://fbidb.io)
