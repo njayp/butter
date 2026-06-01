@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'models/move.dart';
 import 'models/pokemon.dart';
 import 'services/pokemon_service.dart';
+import 'type_palette.dart';
 
 /// Full-screen table of every move a [Pokemon] learns, with columns
 /// Move · Type · Level · Method. Mirrors the loading/error/data pattern from
@@ -60,9 +61,14 @@ class _MovesScreenState extends State<MovesScreen> {
               rows: [
                 for (final m in moves)
                   DataRow(
+                    // Faint type tint keeps the default text legible across
+                    // many stacked rows while still cueing the move's type.
+                    color: WidgetStateProperty.all(
+                      typeColor(m.type).withValues(alpha: 0.14),
+                    ),
                     cells: [
                       DataCell(Text(m.name.replaceAll('-', ' '))),
-                      DataCell(Text(m.type)),
+                      DataCell(_TypeLabel(type: m.type)),
                       DataCell(Text(m.level?.toString() ?? '—')),
                       DataCell(Text(m.method.replaceAll('-', ' '))),
                     ],
@@ -74,4 +80,18 @@ class _MovesScreenState extends State<MovesScreen> {
       ),
     );
   }
+}
+
+/// Compact type cell: the tinted official type symbol (or a Poké Ball fallback
+/// for an unknown type) followed by the lowercase type name.
+class _TypeLabel extends StatelessWidget {
+  const _TypeLabel({required this.type});
+
+  final String type;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [TypeIcon(type), const SizedBox(width: 6), Text(type)],
+  );
 }

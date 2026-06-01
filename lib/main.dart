@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'models/pokemon.dart';
 import 'moves_screen.dart';
 import 'services/pokemon_service.dart';
+import 'type_palette.dart';
 
 void main() {
   runApp(const MyApp());
@@ -231,7 +232,16 @@ class _PokemonCard extends StatelessWidget {
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
-          children: [for (final type in pokemon.types) Chip(label: Text(type))],
+          children: [
+            for (final type in pokemon.types)
+              Chip(
+                // White symbol for contrast on the saturated chip fill.
+                avatar: TypeIcon(type, color: Colors.white),
+                label: Text(type),
+                backgroundColor: typeColor(type),
+                labelStyle: const TextStyle(color: Colors.white),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
         FilledButton.tonalIcon(
