@@ -5,6 +5,11 @@ import 'models/pokemon.dart';
 import 'services/pokemon_service.dart';
 import 'type_palette.dart';
 
+/// Display form of a raw pokeapi string — hyphens become spaces
+/// (`mega-punch` → `mega punch`). Filter *values* keep the raw form; only
+/// labels and cells are prettified.
+String _pretty(String raw) => raw.replaceAll('-', ' ');
+
 /// Full-screen table of every move a [Pokemon] learns, with columns
 /// Move · Type · Level · Method. Mirrors the loading/error/data pattern from
 /// the page's result region; the per-move type fetches happen in [getMoves].
@@ -24,43 +29,19 @@ class _MovesScreenState extends State<MovesScreen> {
     widget.pokemon.moves,
   );
 
-  /// Active sort column, or null to keep the service's default order
-  /// (level-up first by level, then alphabetical).
-  int? _sortColumnIndex;
-  bool _sortAscending = true;
+  /// Active filters; null means "All". Compared against the raw API strings
+  /// (`electric`, `level-up`), so they stay un-prettified.
+  String? _typeFilter;
+  String? _methodFilter;
 
-  void _onSort(int index, bool ascending) => setState(() {
-    _sortColumnIndex = index;
-    _sortAscending = ascending;
-  });
-
-  /// Returns [moves] in the order the table should render: the service's
-  /// default when no header is active, otherwise a copy sorted by the chosen
-  /// column. Nulls (level-less moves) always sort last regardless of direction.
-  List<Move> _sorted(List<Move> moves) {
-    final index = _sortColumnIndex;
-    if (index == null) return moves;
-
-    // Cases match the column order: 0 Move · 1 Type · 2 Level · 3 Method.
-    int byName(Move a, Move b) => a.name.compareTo(b.name);
-    int compare(Move a, Move b) {
-      switch (index) {
-        case 1: // Type — group by type, tiebreak by name.
-          final byType = a.type.compareTo(b.type);
-          return byType != 0 ? byType : byName(a, b);
-        case 2: // Level — numeric, nulls last (shared with the default order).
-          return Move.compareLevelThenName(a, b);
-        case 3: // Method.
-          final byMethod = a.method.compareTo(b.method);
-          return byMethod != 0 ? byMethod : byName(a, b);
-        default: // Move.
-          return byName(a, b);
-      }
-    }
-
-    final sorted = [...moves]..sort(compare);
-    return _sortAscending ? sorted : sorted.reversed.toList();
-  }
+  /// Moves passing both facets (AND across facets, e.g. Fire *and* level-up).
+  /// Keeps the service's default order since it never reorders.
+  List<Move> _filtered(List<Move> moves) => [
+    for (final m in moves)
+      if ((_typeFilter == null || m.type == _typeFilter) &&
+          (_methodFilter == null || m.method == _methodFilter))
+        m,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -87,62 +68,159 @@ class _MovesScreenState extends State<MovesScreen> {
               ),
             );
           }
-          final moves = _sorted(snapshot.requireData);
-          // Built once here rather than inside the LayoutBuilder so layout
-          // passes don't rebuild the whole row list.
-          final rows = [
-            for (final m in moves)
-              DataRow(
-                // Faint type tint keeps the default text legible across many
-                // stacked rows while still cueing the move's type.
-                color: WidgetStateProperty.all(
-                  typeColor(m.type).withValues(alpha: 0.14),
-                ),
-                cells: [
-                  DataCell(Text(m.name.replaceAll('-', ' '))),
-                  DataCell(TypeIcon(m.type)),
-                  DataCell(Text(m.level?.toString() ?? '—')),
-                  DataCell(Text(m.method.replaceAll('-', ' '))),
-                ],
+          final all = snapshot.requireData;
+          // Options reflect only the types/methods this Pokémon actually has,
+          // so the dropdowns never offer a choice that yields nothing.
+          final types = {for (final m in all) m.type}.toList()..sort();
+          final methods = {for (final m in all) m.method}.toList()..sort();
+          final moves = _filtered(all);
+
+          return Column(
+            children: [
+              _MovesFilterBar(
+                types: types,
+                methods: methods,
+                typeFilter: _typeFilter,
+                methodFilter: _methodFilter,
+                onType: (v) => setState(() => _typeFilter = v),
+                onMethod: (v) => setState(() => _methodFilter = v),
+                visible: moves.length,
+                total: all.length,
               ),
-          ];
-          // The table fills the available width so the per-row type tint reaches
-          // the right edge; it scrolls vertically, and only sideways if the
-          // columns can't fit.
+              Expanded(
+                child: moves.isEmpty
+                    ? const Center(child: Text('No moves match these filters.'))
+                    : _MovesTable(moves: moves, textTheme: textTheme),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Slim Type + Method filter bar above the table. Each facet is a Material 3
+/// [DropdownMenu] whose value is the raw API string (so it matches [Move]
+/// fields) and whose label is the de-hyphenated, human-readable form.
+class _MovesFilterBar extends StatelessWidget {
+  const _MovesFilterBar({
+    required this.types,
+    required this.methods,
+    required this.typeFilter,
+    required this.methodFilter,
+    required this.onType,
+    required this.onMethod,
+    required this.visible,
+    required this.total,
+  });
+
+  final List<String> types;
+  final List<String> methods;
+  final String? typeFilter;
+  final String? methodFilter;
+  final ValueChanged<String?> onType;
+  final ValueChanged<String?> onMethod;
+  final int visible;
+  final int total;
+
+  /// Builds the entry list shared by both dropdowns: an "All" sentinel
+  /// (value `null`) followed by one prettified entry per raw option, with an
+  /// optional [icon] (used by the Type facet).
+  static List<DropdownMenuEntry<String?>> _entries(
+    List<String> options, {
+    Widget Function(String)? icon,
+  }) => [
+    const DropdownMenuEntry(value: null, label: 'All'),
+    for (final o in options)
+      DropdownMenuEntry(
+        value: o,
+        label: _pretty(o),
+        leadingIcon: icon?.call(o),
+      ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          DropdownMenu<String?>(
+            initialSelection: typeFilter,
+            label: const Text('Type'),
+            onSelected: onType,
+            dropdownMenuEntries: _entries(types, icon: TypeIcon.new),
+          ),
+          DropdownMenu<String?>(
+            initialSelection: methodFilter,
+            label: const Text('Method'),
+            onSelected: onMethod,
+            dropdownMenuEntries: _entries(methods),
+          ),
+          Text(
+            '$visible of $total',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The scrolling moves table: vertical always, horizontal only when the columns
+/// can't fit. The per-row type tint reaches the right edge by filling the width.
+class _MovesTable extends StatelessWidget {
+  const _MovesTable({required this.moves, required this.textTheme});
+
+  final List<Move> moves;
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    // Built once here rather than inside the LayoutBuilder so layout passes
+    // don't rebuild the whole row list.
+    final rows = [
+      for (final m in moves)
+        DataRow(
+          // Faint type tint keeps the default text legible across many stacked
+          // rows while still cueing the move's type.
+          color: WidgetStateProperty.all(
+            typeColor(m.type).withValues(alpha: 0.14),
+          ),
+          cells: [
+            DataCell(Text(_pretty(m.name))),
+            DataCell(TypeIcon(m.type)),
+            DataCell(Text(m.level?.toString() ?? '—')),
+            DataCell(Text(_pretty(m.method))),
+          ],
+        ),
+    ];
+    return SingleChildScrollView(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
           return SingleChildScrollView(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                    child: DataTable(
-                      columnSpacing: 16,
-                      horizontalMargin: 16,
-                      sortColumnIndex: _sortColumnIndex,
-                      sortAscending: _sortAscending,
-                      dataTextStyle: textTheme.bodyLarge,
-                      headingTextStyle: textTheme.titleSmall,
-                      dataRowMinHeight: 52,
-                      dataRowMaxHeight: 64,
-                      columns: [
-                        DataColumn(label: const Text('Move'), onSort: _onSort),
-                        DataColumn(label: const Text('Type'), onSort: _onSort),
-                        DataColumn(
-                          label: const Text('Level'),
-                          numeric: true,
-                          onSort: _onSort,
-                        ),
-                        DataColumn(
-                          label: const Text('Method'),
-                          onSort: _onSort,
-                        ),
-                      ],
-                      rows: rows,
-                    ),
-                  ),
-                );
-              },
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                columnSpacing: 16,
+                horizontalMargin: 16,
+                dataTextStyle: textTheme.bodyLarge,
+                headingTextStyle: textTheme.titleSmall,
+                dataRowMinHeight: 52,
+                dataRowMaxHeight: 64,
+                columns: const [
+                  DataColumn(label: Text('Move')),
+                  DataColumn(label: Text('Type')),
+                  DataColumn(label: Text('Level'), numeric: true),
+                  DataColumn(label: Text('Method')),
+                ],
+                rows: rows,
+              ),
             ),
           );
         },

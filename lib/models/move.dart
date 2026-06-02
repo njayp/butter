@@ -20,8 +20,8 @@ class Move {
   final String method;
 
   /// Orders level-up moves first (by level), then the rest alphabetically;
-  /// null levels (TM/egg/tutor) always sort last. Shared by the service's
-  /// default ordering and the moves table's Level-column sort.
+  /// null levels (TM/egg/tutor) always sort last. Used by the service to set
+  /// the moves table's default order.
   static int compareLevelThenName(Move a, Move b) {
     final aLevel = a.level;
     final bLevel = b.level;

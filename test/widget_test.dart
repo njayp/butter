@@ -37,7 +37,7 @@ String _body(int id, String name, {bool nullArtwork = false}) =>
 ''';
 
 /// A minimal /move/{id} body — only the `type.name` the resolver reads.
-const _moveBody = '{ "type": { "name": "normal" } }';
+String _moveBody(String type) => '{ "type": { "name": "$type" } }';
 
 void main() {
   useTempHive(); // the moves test touches the persistent box; keep it offline
@@ -201,12 +201,18 @@ void main() {
     expect(find.text('Pikachu'), findsOneWidget);
   });
 
-  testWidgets('tapping Moves opens the moves table', (tester) async {
-    // Branch on the URL: /pokemon/... → the Pokémon body; /move/... → a move.
+  testWidgets('the Type filter narrows the moves table', (tester) async {
+    // Branch on the URL: /pokemon/... → the Pokémon body; /move/{id}/ → a move.
+    // Move 84 (thunder-shock) is electric; move 5 (mega-punch) is normal, so the
+    // two rows differ by type and the Type filter has something to bite on.
+    const moveTypes = {'84': 'electric', '5': 'normal'};
     final service = PokemonService(
       client: MockClient((req) async {
         if (req.url.path.contains('/move/')) {
-          return http.Response(_moveBody, 200);
+          // Seeded urls end in '/', so the last segment is empty — take the
+          // last non-empty one to get the move id.
+          final id = req.url.pathSegments.where((s) => s.isNotEmpty).last;
+          return http.Response(_moveBody(moveTypes[id] ?? 'normal'), 200);
         }
         final id = int.parse(req.url.pathSegments.last);
         return http.Response(_body(id, 'pikachu'), 200);
@@ -227,21 +233,23 @@ void main() {
     });
     await tester.pumpAndSettle(); // finish the route transition → the table
 
-    // The table headers render.
+    // The table headers render ('Move'/'Level' are unique; 'Type'/'Method'
+    // also appear as filter labels, so just confirm the unique two).
     expect(find.text('Move'), findsOneWidget);
-    expect(find.text('Type'), findsOneWidget);
     expect(find.text('Level'), findsOneWidget);
-    expect(find.text('Method'), findsOneWidget);
-    // The known move, with hyphens turned into spaces.
+    // Both moves render initially (hyphens turned into spaces).
     expect(find.text('thunder shock'), findsOneWidget);
+    expect(find.text('mega punch'), findsOneWidget);
 
-    // Default order is by level: thunder shock (1) above mega punch (15).
-    double rowY(String name) => tester.getTopLeft(find.text(name)).dy;
-    expect(rowY('thunder shock'), lessThan(rowY('mega punch')));
-
-    // Tapping the Move header sorts by name ascending, flipping the order.
-    await tester.tap(find.text('Move'));
+    // Open the Type dropdown (the first of the two) and pick electric.
+    await tester.tap(find.byType(DropdownMenu<String?>).first);
     await tester.pumpAndSettle();
-    expect(rowY('mega punch'), lessThan(rowY('thunder shock')));
+    // The field text echoes alongside the menu entry, so target the entry.
+    await tester.tap(find.text('electric').last);
+    await tester.pumpAndSettle();
+
+    // Only the electric move (thunder shock) survives the filter.
+    expect(find.text('thunder shock'), findsOneWidget);
+    expect(find.text('mega punch'), findsNothing);
   });
 }
