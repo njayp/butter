@@ -241,11 +241,11 @@ void main() {
     expect(find.text('thunder shock'), findsOneWidget);
     expect(find.text('mega punch'), findsOneWidget);
 
-    // Open the Type dropdown (the first of the two) and pick electric.
-    await tester.tap(find.byType(DropdownMenu<String?>).first);
+    // Open the Type filter chip and pick electric. The unselected chip reads
+    // 'Type', so 'electric' appears only in the open menu — no disambiguation.
+    await tester.tap(find.widgetWithText(FilterChip, 'Type'));
     await tester.pumpAndSettle();
-    // The field text echoes alongside the menu entry, so target the entry.
-    await tester.tap(find.text('electric').last);
+    await tester.tap(find.text('electric'));
     await tester.pumpAndSettle();
 
     // Only the electric move (thunder shock) survives the filter.

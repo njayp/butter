@@ -101,8 +101,8 @@ class _MovesScreenState extends State<MovesScreen> {
 }
 
 /// Slim Type + Method filter bar above the table. Each facet is a Material 3
-/// [DropdownMenu] whose value is the raw API string (so it matches [Move]
-/// fields) and whose label is the de-hyphenated, human-readable form.
+/// filter chip whose value is the raw API string (so it matches [Move] fields)
+/// and whose label is the de-hyphenated, human-readable form.
 class _MovesFilterBar extends StatelessWidget {
   const _MovesFilterBar({
     required this.types,
@@ -124,22 +124,6 @@ class _MovesFilterBar extends StatelessWidget {
   final int visible;
   final int total;
 
-  /// Builds the entry list shared by both dropdowns: an "All" sentinel
-  /// (value `null`) followed by one prettified entry per raw option, with an
-  /// optional [icon] (used by the Type facet).
-  static List<DropdownMenuEntry<String?>> _entries(
-    List<String> options, {
-    Widget Function(String)? icon,
-  }) => [
-    const DropdownMenuEntry(value: null, label: 'All'),
-    for (final o in options)
-      DropdownMenuEntry(
-        value: o,
-        label: _pretty(o),
-        leadingIcon: icon?.call(o),
-      ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -149,17 +133,18 @@ class _MovesFilterBar extends StatelessWidget {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          DropdownMenu<String?>(
-            initialSelection: typeFilter,
-            label: const Text('Type'),
+          _FacetChip(
+            label: 'Type',
+            options: types,
+            value: typeFilter,
             onSelected: onType,
-            dropdownMenuEntries: _entries(types, icon: TypeIcon.new),
+            icon: TypeIcon.new,
           ),
-          DropdownMenu<String?>(
-            initialSelection: methodFilter,
-            label: const Text('Method'),
+          _FacetChip(
+            label: 'Method',
+            options: methods,
+            value: methodFilter,
             onSelected: onMethod,
-            dropdownMenuEntries: _entries(methods),
           ),
           Text(
             '$visible of $total',
@@ -167,6 +152,56 @@ class _MovesFilterBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A single filter facet: an M3 [FilterChip] that opens a [MenuAnchor] menu of
+/// options. The chip shows the active selection (prettified) and a selected
+/// tint; picking "All" clears the facet (value `null`).
+class _FacetChip extends StatelessWidget {
+  const _FacetChip({
+    required this.label,
+    required this.options,
+    required this.value,
+    required this.onSelected,
+    this.icon,
+  });
+
+  final String label; // "Type" / "Method" — shown when unselected
+  final List<String> options; // raw API strings
+  final String? value; // active filter, null = All
+  final ValueChanged<String?> onSelected;
+  final Widget Function(String)? icon; // TypeIcon.new for the Type facet
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuAnchor(
+      menuChildren: [
+        MenuItemButton(
+          onPressed: () => onSelected(null),
+          child: const Text('All'),
+        ),
+        for (final o in options)
+          MenuItemButton(
+            leadingIcon: icon?.call(o),
+            onPressed: () => onSelected(o),
+            child: Text(_pretty(o)),
+          ),
+      ],
+      builder: (context, controller, _) {
+        // Promote to a local so the body has no `!` (CLAUDE.md: strict
+        // null-safety, no bang operator).
+        final v = value;
+        return FilterChip(
+          avatar: v == null ? null : icon?.call(v),
+          showCheckmark: v == null ? false : icon == null,
+          label: Text(v == null ? label : _pretty(v)),
+          selected: v != null,
+          onSelected: (_) =>
+              controller.isOpen ? controller.close() : controller.open(),
+        );
+      },
     );
   }
 }
