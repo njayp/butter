@@ -3,6 +3,13 @@
 See [README.md](README.md) for what this app is and how it's structured — read
 it first for context before planning or making changes.
 
+Keep the README in sync as you go: when a change adds, removes, or renames a
+user-facing feature, a screen, a file in the "Project layout" table, or a
+notable technical decision, update the matching part of the README (intro,
+"What it does", "Project layout", "Tech notes") in the same change. The bar is
+significant-not-incidental — document behaviour and decisions a reader can't
+quickly infer from the code, not every symbol.
+
 ## Claude-Code Plan Guidelines
 
 **Context:** Explain why this change is needed — the problem, what prompted it, and the intended outcome.
@@ -66,4 +73,5 @@ run this loop while F5 is idle.
 
 ---
 
-_Update this file when conventions change; update README.md when scope changes._
+_Update this file when conventions change; keep README.md in sync per the
+"Project overview" note above._
