@@ -159,7 +159,12 @@ class _PokedexSearchField extends StatelessWidget {
               final typed = int.tryParse(controller.text.trim());
               final isDifferent = typed != null && typed != currentId.value;
               return IconButton.filled(
-                icon: const Icon(Icons.arrow_forward),
+                icon: Icon(
+                  Icons.arrow_forward,
+                  color: isDifferent
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : null,
+                ),
                 tooltip: 'Go', // tests rely on this tooltip
                 onPressed: isDifferent ? () => onSubmit(controller.text) : null,
               );
