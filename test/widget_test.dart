@@ -233,10 +233,10 @@ void main() {
     });
     await tester.pumpAndSettle(); // finish the route transition → the table
 
-    // The table headers render ('Move'/'Level' are unique; 'Type'/'Method'
+    // The table headers render ('Move'/'Learned' are unique; 'Type'/'Method'
     // also appear as filter labels, so just confirm the unique two).
     expect(find.text('Move'), findsOneWidget);
-    expect(find.text('Level'), findsOneWidget);
+    expect(find.text('Learned'), findsOneWidget);
     // Both moves render initially (hyphens turned into spaces).
     expect(find.text('thunder shock'), findsOneWidget);
     expect(find.text('mega punch'), findsOneWidget);

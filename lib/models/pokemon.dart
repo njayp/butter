@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../string_extensions.dart';
+
 /// An immutable view of a single Pokémon, parsed from the pokeapi.co response.
 ///
 /// Keeping the JSON parsing here (out of the UI) makes it easy to unit-test
@@ -42,8 +44,7 @@ class Pokemon {
   }
 
   /// Name with its first letter capitalized, e.g. `pikachu` → `Pikachu`.
-  String get displayName =>
-      name.isEmpty ? name : '${name[0].toUpperCase()}${name.substring(1)}';
+  String get displayName => name.capitalised;
 
   /// Zero-padded Pokédex number, e.g. id `25` → `#0025`.
   String get number => '#${id.toString().padLeft(4, '0')}';

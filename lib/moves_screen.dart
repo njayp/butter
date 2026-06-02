@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'models/move.dart';
 import 'models/pokemon.dart';
 import 'services/pokemon_service.dart';
+import 'string_extensions.dart';
 import 'type_palette.dart';
 
 /// Display form of a raw pokeapi string — hyphens become spaces
@@ -10,8 +11,13 @@ import 'type_palette.dart';
 /// labels and cells are prettified.
 String _pretty(String raw) => raw.replaceAll('-', ' ');
 
+/// Combined "how it's learned" label for the merged column: `Level 15` when the
+/// move has a level, otherwise the capitalised method name (`Machine`, `Egg`).
+String _learned(Move m) =>
+    m.level != null ? 'Level ${m.level}' : _pretty(m.method).capitalised;
+
 /// Full-screen table of every move a [Pokemon] learns, with columns
-/// Move · Type · Level · Method. Mirrors the loading/error/data pattern from
+/// Move · Type · Learned. Mirrors the loading/error/data pattern from
 /// the page's result region; the per-move type fetches happen in [getMoves].
 class MovesScreen extends StatefulWidget {
   const MovesScreen({super.key, required this.pokemon, required this.service});
@@ -229,8 +235,7 @@ class _MovesTable extends StatelessWidget {
           cells: [
             DataCell(Text(_pretty(m.name))),
             DataCell(TypeIcon(m.type)),
-            DataCell(Text(m.level?.toString() ?? '—')),
-            DataCell(Text(_pretty(m.method))),
+            DataCell(Text(_learned(m))),
           ],
         ),
     ];
@@ -251,8 +256,7 @@ class _MovesTable extends StatelessWidget {
                 columns: const [
                   DataColumn(label: Text('Move')),
                   DataColumn(label: Text('Type')),
-                  DataColumn(label: Text('Level'), numeric: true),
-                  DataColumn(label: Text('Method')),
+                  DataColumn(label: Text('Learned')),
                 ],
                 rows: rows,
               ),
